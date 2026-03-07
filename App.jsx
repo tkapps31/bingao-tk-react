@@ -44,7 +44,7 @@ function getLetterForNum(n) {
 }
 function shuffle(arr) {
   const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
 function generateCard() {
@@ -62,7 +62,7 @@ function markCardNum(card, num) {
   for (const col of COLS) {
     const idx = card[col]?.indexOf(num) ?? -1;
     if (idx !== -1 && !(card[col + "_m"]?.[idx])) {
-      const m = [...(card[col + "_m"] || [false,false,false,false,false])];
+      const m = [...(card[col + "_m"] || [false, false, false, false, false])];
       m[idx] = true;
       return { ...card, [col + "_m"]: m };
     }
@@ -76,14 +76,14 @@ function isMk(card, col, row) {
 function checkBingo(card, pattern = "line") {
   if (pattern === "line") {
     for (let r = 0; r < 5; r++) if (COLS.every(c => isMk(card, c, r))) return true;
-    for (const c of COLS) if ([0,1,2,3,4].every(r => isMk(card, c, r))) return true;
+    for (const c of COLS) if ([0, 1, 2, 3, 4].every(r => isMk(card, c, r))) return true;
   }
   if (pattern === "diagonal") {
-    if ([0,1,2,3,4].every(i => isMk(card, COLS[i], i))) return true;
-    if ([0,1,2,3,4].every(i => isMk(card, COLS[4-i], i))) return true;
+    if ([0, 1, 2, 3, 4].every(i => isMk(card, COLS[i], i))) return true;
+    if ([0, 1, 2, 3, 4].every(i => isMk(card, COLS[4 - i], i))) return true;
   }
   if (pattern === "full") {
-    return COLS.every(c => [0,1,2,3,4].every(r => isMk(card, c, r)));
+    return COLS.every(c => [0, 1, 2, 3, 4].every(r => isMk(card, c, r)));
   }
   return false;
 }
@@ -97,17 +97,17 @@ function drawQR(canvas, code) {
   const S = 220, grid = 21, cell = S / grid;
   ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, S, S);
   const drawFinder = (x, y) => {
-    ctx.fillStyle = "#0C0B16"; ctx.fillRect(x*cell,y*cell,7*cell,7*cell);
-    ctx.fillStyle = "#fff"; ctx.fillRect((x+1)*cell,(y+1)*cell,5*cell,5*cell);
-    ctx.fillStyle = "#0C0B16"; ctx.fillRect((x+2)*cell,(y+2)*cell,3*cell,3*cell);
+    ctx.fillStyle = "#0C0B16"; ctx.fillRect(x * cell, y * cell, 7 * cell, 7 * cell);
+    ctx.fillStyle = "#fff"; ctx.fillRect((x + 1) * cell, (y + 1) * cell, 5 * cell, 5 * cell);
+    ctx.fillStyle = "#0C0B16"; ctx.fillRect((x + 2) * cell, (y + 2) * cell, 3 * cell, 3 * cell);
   };
-  drawFinder(0,0); drawFinder(14,0); drawFinder(0,14);
+  drawFinder(0, 0); drawFinder(14, 0); drawFinder(0, 14);
   let seed = 0;
   for (const ch of code) seed = (seed * 31 + ch.charCodeAt(0)) & 0xffff;
   const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
   for (let r = 0; r < grid; r++) for (let c = 0; c < grid; c++) {
-    if ((r<8&&c<8)||(r<8&&c>12)||(r>12&&c<8)) continue;
-    if (rand() > 0.5) { ctx.fillStyle = "#0C0B16"; ctx.fillRect(c*cell,r*cell,cell,cell); }
+    if ((r < 8 && c < 8) || (r < 8 && c > 12) || (r > 12 && c < 8)) continue;
+    if (rand() > 0.5) { ctx.fillStyle = "#0C0B16"; ctx.fillRect(c * cell, r * cell, cell, cell); }
   }
 }
 
@@ -253,29 +253,13 @@ function SplashScreen({ onHost, onPlayer }) {
       {/* bg dots */}
       <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,.025) 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none" }} />
 
-      <div style={{ fontSize: 11, letterSpacing: 4, color: "var(--muted)", textTransform: "uppercase", fontWeight: 700 }}>Powered by Supabase</div>
-
       <div className="rg" style={{
         fontSize: "clamp(44px,13vw,64px)", letterSpacing: 2, textAlign: "center", lineHeight: 1.1,
-        background: "linear-gradient(135deg,#FF5A5A,#FFD166 35%,#06D6A0 60%,#4895EF 80%,#F77F00)",
-        WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-        animation: "logopulse 3s ease-in-out infinite",
-        filter: "drop-shadow(0 0 50px rgba(255,209,102,.3))",
+        color: "var(--n)",
+        filter: "drop-shadow(0 0 20px rgba(6, 214, 160, .35))",
       }}>Bingão<br />do TK</div>
 
-      <div style={{ color: "var(--muted)", fontSize: 15 }}>O bingo que todo mundo ama 🎉</div>
-
-      <div style={{ display: "flex", gap: 10, margin: "4px 0" }}>
-        {COLS.map((c, i) => (
-          <div key={c} className="rg" style={{
-            width: 50, height: 50, borderRadius: "50%", background: COL_HEX[c],
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 14, color: c === "I" ? "#1a1a1a" : "#fff",
-            boxShadow: `0 4px 20px ${COL_HEX[c]}55`,
-            animation: `float 3s ease-in-out ${i * 0.25}s infinite`,
-          }}>{c}</div>
-        ))}
-      </div>
+      <div style={{ color: "var(--muted)", fontSize: 15, margin: "4px 0 12px" }}>O bingo que todo mundo ama 🎉</div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 280 }}>
         {[
@@ -287,7 +271,7 @@ function SplashScreen({ onHost, onPlayer }) {
             fontFamily: "'DM Sans',sans-serif", fontSize: 17, fontWeight: 800,
             background: grad, color: "#fff", boxShadow: `0 8px 28px ${shadow}`,
             transition: "transform .15s",
-          }} onMouseDown={e => e.currentTarget.style.transform="scale(.96)"} onMouseUp={e => e.currentTarget.style.transform=""}>{label}</button>
+          }} onMouseDown={e => e.currentTarget.style.transform = "scale(.96)"} onMouseUp={e => e.currentTarget.style.transform = ""}>{label}</button>
         ))}
       </div>
     </div>
@@ -295,8 +279,14 @@ function SplashScreen({ onHost, onPlayer }) {
 }
 
 /* ─────────────────────────────────────────────
-   QR MODAL
+   QR MODAL & INLINE
 ───────────────────────────────────────────── */
+function QRCodeInline({ code }) {
+  const canvasRef = useRef();
+  useEffect(() => { if (canvasRef.current && code) drawQR(canvasRef.current, code); }, [code]);
+  return <canvas ref={canvasRef} width={220} height={220} style={{ width: 150, height: 150, borderRadius: 12, boxShadow: "0 4px 16px rgba(0,0,0,.3)", marginTop: 14 }} />;
+}
+
 function QRModal({ code, onClose }) {
   const canvasRef = useRef();
   useEffect(() => { if (canvasRef.current) drawQR(canvasRef.current, code); }, [code]);
@@ -314,31 +304,13 @@ function QRModal({ code, onClose }) {
   );
 }
 
-/* ─────────────────────────────────────────────
-   BINGO ALERT (HOST)
-───────────────────────────────────────────── */
-function BingoAlert({ playerName, pattern, onConfirm, onReject }) {
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(0,0,0,.88)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
-      <div style={{ background: "var(--s1)", borderRadius: 24, padding: "32px 28px", textAlign: "center", width: "88%", maxWidth: 340, border: "2px solid var(--accent)", boxShadow: "0 0 60px rgba(255,209,102,.2)", animation: "fadein .3s ease" }}>
-        <div style={{ fontSize: 60, animation: "shake .5s ease" }}>🏆</div>
-        <div className="rg" style={{ fontSize: 38, color: "var(--accent)", margin: "8px 0" }}>BINGO!</div>
-        <div style={{ fontSize: 20, fontWeight: 800 }}>{playerName} fez BINGO! 🎉</div>
-        <div style={{ color: "var(--muted)", fontSize: 13, marginTop: 4 }}>Padrão: {pattern}</div>
-        <div style={{ display: "flex", gap: 10, marginTop: 22 }}>
-          <button onClick={onConfirm} style={{ flex: 1, padding: 14, border: "none", borderRadius: 50, background: "linear-gradient(135deg,#06D6A0,#4895EF)", color: "#fff", fontWeight: 800, fontSize: 16 }}>✓ Confirmar</button>
-          <button onClick={onReject} style={{ flex: 1, padding: 14, border: "none", borderRadius: 50, background: "var(--s2)", color: "var(--muted)", fontWeight: 700, fontSize: 16 }}>✗ Rejeitar</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+
 
 /* ─────────────────────────────────────────────
    WIN OVERLAY (PLAYER)
 ───────────────────────────────────────────── */
 function WinOverlay({ onClose }) {
-  const confettiColors = ["#FF5A5A","#FFD166","#06D6A0","#4895EF","#F77F00","#fff","#FF99CC"];
+  const confettiColors = ["#FF5A5A", "#FFD166", "#06D6A0", "#4895EF", "#F77F00", "#fff", "#FF99CC"];
   const pieces = useMemo(() => Array.from({ length: 100 }, (_, i) => ({
     id: i,
     left: `${Math.random() * 100}vw`,
@@ -406,7 +378,7 @@ function Cartela({ card }) {
               transition: "background .3s, transform .3s",
               ...markedStyle,
             }}>
-              {isFree ? <span style={{ fontSize: 11, textAlign: "center", lineHeight: 1.3, fontWeight: 900 }}>⭐<br />FREE</span> : card[c][r]}
+              {isFree ? <span style={{ fontSize: 18, textAlign: "center", fontWeight: 900 }}>TK</span> : card[c][r]}
               {isMarked && !isFree && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.08)", pointerEvents: "none" }} />}
             </div>
           );
@@ -458,7 +430,7 @@ function BigBall({ num, letter, animKey }) {
 /* ─────────────────────────────────────────────
    HOST SCREEN
 ───────────────────────────────────────────── */
-function HostScreen({ onLeave, showToast }) {
+function HostScreen({ onLeave, showToast, initialData }) {
   const [phase, setPhase] = useState("waiting"); // waiting | running | paused | ended
   const [roomId, setRoomId] = useState(null);
   const [roomCode, setRoomCode] = useState("");
@@ -475,8 +447,8 @@ function HostScreen({ onLeave, showToast }) {
   const [callStyle, setCallStyle] = useState("tradicional");
   const [winPattern, setWinPattern] = useState("line");
   const [showQRModal, setShowQRModal] = useState(false);
-  const [loading, setLoading] = useState("Criando sala...");
-  const [bingoAlert, setBingoAlert] = useState(null); // { playerName, pattern, eventId, playerId }
+  const [loading, setLoading] = useState(initialData ? "Restaurando sala..." : "Criando sala...");
+
   const [endedSummary, setEndedSummary] = useState("");
   const autoRef = useRef(null);
   const subsRef = useRef([]);
@@ -490,6 +462,55 @@ function HostScreen({ onLeave, showToast }) {
   useEffect(() => {
     let alive = true;
     async function init() {
+      if (initialData) {
+        setRoomId(initialData.roomId);
+        setRoomCode(initialData.roomCode);
+        setPlayerId(initialData.playerId);
+        try {
+          const { data: room, error: re } = await db().from("rooms").select("*").eq("id", initialData.roomId).single();
+          if (re || !room) throw new Error("Sala não encontrada");
+          if (!alive) return;
+
+          setPhase(room.phase);
+          setCalled(room.called_numbers || []);
+          setCurrentNum(room.current_number);
+          setCurrentLetter(room.current_letter);
+          if (room.auto_speed) setAutoSpeed(room.auto_speed);
+          if (room.voice_lang) setVoiceLang(room.voice_lang);
+          if (room.voice_rate) setVoiceRate(room.voice_rate);
+          if (room.call_style) setCallStyle(room.call_style);
+          if (room.win_pattern) setWinPattern(room.win_pattern);
+
+          const pSub = db().channel(`host_players_${room.id}`)
+            .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${room.id}` }, () => {
+              if (alive) refreshPlayers(room.id, setPlayers);
+            }).subscribe();
+
+          const eSub = db().channel(`host_events_${room.id}`)
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_events", filter: `room_id=eq.${room.id}` }, (p) => {
+              if (!alive) return;
+              const evt = p.new;
+              if (evt.type === "bingo_claim" && phaseRef.current === "running") {
+                clearAutoInterval();
+                const pname = evt.payload?.player_name || "Jogador";
+                db().from("rooms").update({ phase: "ended", winner_player_id: evt.player_id }).eq("id", room.id);
+                db().from("room_events").insert({ room_id: room.id, type: "bingo_confirmed", player_id: evt.player_id });
+                setPhase("ended");
+                setEndedSummary(`🏆 ${pname} venceu com ${calledRef.current.length} números chamados!`);
+                speakRaw(`Parabéns ${pname}! Você ganhou o Bingão do TK!`);
+              }
+            }).subscribe();
+
+          subsRef.current = [pSub, eSub];
+          await refreshPlayers(room.id, setPlayers);
+          setLoading(null);
+          showToast(`Sala restaurada!`, "success");
+        } catch (e) {
+          if (alive) { setLoading(null); showToast("Erro ao restaurar sala: " + e.message, "error"); }
+        }
+        return;
+      }
+
       const code = genCode();
       setRoomCode(code);
       try {
@@ -506,6 +527,13 @@ function HostScreen({ onLeave, showToast }) {
         setRoomId(room.id);
         setPlayerId(pd.id);
 
+        localStorage.setItem("bingao_session", JSON.stringify({
+          role: "host",
+          roomId: room.id,
+          roomCode: code,
+          playerId: pd.id
+        }));
+
         // Subscribe players
         const pSub = db().channel(`host_players_${room.id}`)
           .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${room.id}` }, () => {
@@ -519,13 +547,14 @@ function HostScreen({ onLeave, showToast }) {
             const evt = p.new;
             if (evt.type === "bingo_claim" && phaseRef.current === "running") {
               clearAutoInterval();
-              setBingoAlert({
-                playerName: evt.payload?.player_name || "Jogador",
-                pattern: evt.payload?.pattern || "linha",
-                eventId: evt.id,
-                playerId: evt.player_id,
-              });
-              speakRaw("BINGO! Alguém ganhou!");
+
+              const pname = evt.payload?.player_name || "Jogador";
+              db().from("rooms").update({ phase: "ended", winner_player_id: evt.player_id }).eq("id", room.id);
+              db().from("room_events").insert({ room_id: room.id, type: "bingo_confirmed", player_id: evt.player_id });
+
+              setPhase("ended");
+              setEndedSummary(`🏆 ${pname} venceu com ${calledRef.current.length} números chamados!`);
+              speakRaw(`Parabéns ${pname}! Você ganhou o Bingão do TK!`);
             }
           }).subscribe();
 
@@ -541,7 +570,7 @@ function HostScreen({ onLeave, showToast }) {
     return () => {
       alive = false;
       clearAutoInterval();
-      subsRef.current.forEach(s => { try { db().removeChannel(s); } catch {} });
+      subsRef.current.forEach(s => { try { db().removeChannel(s); } catch { } });
     };
   }, []);
 
@@ -598,6 +627,10 @@ function HostScreen({ onLeave, showToast }) {
           cards[ci] = result;
           updated = true;
           if (checkBingo(result, pattern)) {
+            clearAutoInterval();
+            phaseRef.current = "ended";
+            setPhase("ended");
+
             await db().from("players").update({ cards, has_bingo: true }).eq("id", p.id);
             await db().from("room_events").insert({
               room_id: rid, type: "bingo_claim", player_id: p.id,
@@ -638,28 +671,22 @@ function HostScreen({ onLeave, showToast }) {
     setCalled([]); setCurrentNum(null); setCurrentLetter(null);
     setPhase("waiting"); setAutoMode(false); clearAutoInterval();
     await db().from("rooms").update({ phase: "waiting", called_numbers: [], current_number: null, current_letter: null }).eq("id", roomId);
-    await db().from("players").update({ has_bingo: false }).eq("room_id", roomId);
+
+    // Regenerate cards for all non-host players
+    const { data: ps } = await db().from("players").select("*").eq("room_id", roomId).eq("is_host", false);
+    if (ps) {
+      for (const p of ps) {
+        const newCards = Array.from({ length: (p.cards || []).length }, generateCard);
+        await db().from("players").update({ cards: newCards, has_bingo: false }).eq("id", p.id);
+      }
+    }
+    // Also clear has_bingo for host
+    await db().from("players").update({ has_bingo: false }).eq("room_id", roomId).eq("is_host", true);
+
     showToast("Nova rodada! 🎉", "success");
   }
 
-  async function confirmBingo() {
-    if (!bingoAlert) return;
-    const pname = bingoAlert.playerName;
-    await db().from("rooms").update({ phase: "ended", winner_player_id: bingoAlert.playerId }).eq("id", roomId);
-    await db().from("room_events").insert({ room_id: roomId, type: "bingo_confirmed", player_id: bingoAlert.playerId });
-    setBingoAlert(null);
-    setPhase("ended");
-    setEndedSummary(`🏆 ${pname} venceu com ${called.length} números chamados!`);
-    speakRaw(`Parabéns ${pname}! Você ganhou o Bingão do TK!`);
-  }
 
-  async function rejectBingo() {
-    if (!bingoAlert) return;
-    await db().from("players").update({ has_bingo: false }).eq("id", bingoAlert.playerId);
-    setBingoAlert(null);
-    setPhase("running");
-    showToast("Bingo rejeitado, jogo continua!", "info");
-  }
 
   function toggleAuto() {
     if (autoMode) { clearAutoInterval(); setAutoMode(false); }
@@ -681,9 +708,13 @@ function HostScreen({ onLeave, showToast }) {
     <div className="screen" style={{ background: "var(--bg)" }}>
       {/* Topbar */}
       <div className="safe-top" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 14px", background: "var(--s1)", borderBottom: "1px solid rgba(255,255,255,.05)", flexShrink: 0 }}>
-        <button onClick={onLeave} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+        {(phase === "waiting" || phase === "ended") ? (
+          <button onClick={onLeave} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+        ) : <div style={{ width: 38 }} />}
         <span className="rg" style={{ fontSize: 18 }}>🎤 Bingão do TK</span>
-        <button onClick={() => setShowQRModal(true)} style={{ width: 38, height: 38, border: "none", background: "var(--accent)", borderRadius: 11, color: "#0C0B16", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>⊞</button>
+        {phase !== "waiting" ? (
+          <button onClick={() => setShowQRModal(true)} style={{ width: 38, height: 38, border: "none", background: "var(--accent)", borderRadius: 11, color: "#0C0B16", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>⊞</button>
+        ) : <div style={{ width: 38 }} />}
       </div>
 
       {/* Body */}
@@ -692,11 +723,12 @@ function HostScreen({ onLeave, showToast }) {
         {/* WAITING */}
         {phase === "waiting" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: 8 }}>
-            <div style={{ fontSize: 52, animation: "float 2s ease-in-out infinite" }}>🎰</div>
+            <div style={{ fontSize: 52, animation: "float 2s ease-in-out infinite" }}>⏳</div>
             <div className="rg" style={{ fontSize: 24, textAlign: "center" }}>Sala criada!</div>
-            <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: "18px 32px", textAlign: "center", border: "1px solid rgba(255,209,102,.1)" }}>
+            <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: "20px 32px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", border: "1px solid rgba(255,209,102,.1)" }}>
               <div style={{ color: "var(--muted)", fontSize: 11, textTransform: "uppercase", letterSpacing: 2, marginBottom: 6 }}>Código da Sala</div>
-              <div className="rg" style={{ fontSize: 48, color: "var(--accent)", letterSpacing: 8 }}>{roomCode}</div>
+              <div className="rg" style={{ fontSize: 48, color: "var(--accent)", letterSpacing: 8, lineHeight: 1 }}>{roomCode}</div>
+              <QRCodeInline code={roomCode} />
             </div>
             <div style={{ color: "var(--muted)", fontSize: 13 }}>Jogadores na sala:</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 340 }}>
@@ -704,7 +736,7 @@ function HostScreen({ onLeave, showToast }) {
                 ? <div style={{ color: "var(--muted)", fontSize: 13 }}>Aguardando...</div>
                 : nonHost.map(p => (
                   <div key={p.id} style={{ background: "var(--s2)", borderRadius: 20, padding: "8px 14px", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 6, animation: "chipin .3s ease" }}>
-                    👤 {p.name} <span style={{ color: "var(--muted)", fontSize: 11 }}>({(p.cards||[]).length} cartela{(p.cards||[]).length!==1?"s":""})</span>
+                    👤 {p.name} <span style={{ color: "var(--muted)", fontSize: 11 }}>({(p.cards || []).length} cartela{(p.cards || []).length !== 1 ? "s" : ""})</span>
                   </div>
                 ))
               }
@@ -763,22 +795,28 @@ function HostScreen({ onLeave, showToast }) {
           <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--muted)", fontWeight: 700 }}>🔊 Locutor</div>
             {[
-              { label: "Idioma", el: <select value={voiceLang} onChange={e => setVoiceLang(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
-                <option value="pt-BR">🇧🇷 Português</option>
-                <option value="en-US">🇺🇸 Inglês</option>
-                <option value="es-ES">🇪🇸 Espanhol</option>
-              </select>},
+              {
+                label: "Idioma", el: <select value={voiceLang} onChange={e => setVoiceLang(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
+                  <option value="pt-BR">🇧🇷 Português</option>
+                  <option value="en-US">🇺🇸 Inglês</option>
+                  <option value="es-ES">🇪🇸 Espanhol</option>
+                </select>
+              },
               { label: "Velocidade", el: <input type="range" min={0.5} max={2} step={0.1} value={voiceRate} onChange={e => setVoiceRate(+e.target.value)} style={{ accentColor: "var(--accent)", width: 120 }} /> },
-              { label: "Estilo", el: <select value={callStyle} onChange={e => setCallStyle(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
-                <option value="tradicional">Tradicional</option>
-                <option value="rapido">Rápido</option>
-                <option value="festivo">Festivo 🎉</option>
-              </select>},
-              { label: "Padrão", el: <select value={winPattern} onChange={e => setWinPattern(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
-                <option value="line">Linha</option>
-                <option value="full">Cartela Cheia</option>
-                <option value="diagonal">Diagonal</option>
-              </select>},
+              {
+                label: "Estilo", el: <select value={callStyle} onChange={e => setCallStyle(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
+                  <option value="tradicional">Tradicional</option>
+                  <option value="rapido">Rápido</option>
+                  <option value="festivo">Festivo 🎉</option>
+                </select>
+              },
+              {
+                label: "Padrão", el: <select value={winPattern} onChange={e => setWinPattern(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
+                  <option value="line">Linha</option>
+                  <option value="full">Cartela Cheia</option>
+                  <option value="diagonal">Diagonal</option>
+                </select>
+              },
             ].map(({ label, el }) => (
               <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <label style={{ fontSize: 13, color: "var(--muted)" }}>{label}</label>
@@ -845,7 +883,7 @@ function HostScreen({ onLeave, showToast }) {
       )}
 
       {showQRModal && <QRModal code={roomCode} onClose={() => setShowQRModal(false)} />}
-      {bingoAlert && <BingoAlert playerName={bingoAlert.playerName} pattern={bingoAlert.pattern} onConfirm={confirmBingo} onReject={rejectBingo} />}
+
     </div>
   );
 }
@@ -889,15 +927,9 @@ function JoinScreen({ onBack, onJoined }) {
         {/* Code */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Código da Sala</label>
-          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Ex: B7X4K" maxLength={6}
+          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="" maxLength={6}
             style={{ ...inputStyle, textTransform: "uppercase", letterSpacing: 5, fontFamily: "'Righteous',cursive", fontSize: 26, textAlign: "center" }} />
         </div>
-        <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 12, position: "relative" }}>
-          <div style={{ position: "absolute", top: "50%", left: 0, width: "42%", height: 1, background: "var(--s2)" }} />
-          <span style={{ position: "relative", zIndex: 1 }}>ou</span>
-          <div style={{ position: "absolute", top: "50%", right: 0, width: "42%", height: 1, background: "var(--s2)" }} />
-        </div>
-        <button onClick={() => { setCode("DEMO1"); }} style={{ background: "transparent", border: "2px solid var(--s2)", color: "var(--muted)", width: "100%", padding: 12, borderRadius: 50, fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 700 }}>📷 Escanear QR Code</button>
         {/* Name */}
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Seu Nome (opcional)</label>
@@ -907,11 +939,11 @@ function JoinScreen({ onBack, onJoined }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Quantidade de Cartelas</label>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
-            {[1,2,3,4,5].map(v => (
+            {[1, 2, 3, 4, 5].map(v => (
               <button key={v} onClick={() => setSelectedCards(v)} style={{
-                aspectRatio: 1, border: `2px solid ${selectedCards===v ? "var(--accent)" : "var(--s2)"}`,
-                borderRadius: 10, background: selectedCards===v ? "rgba(255,209,102,.1)" : "transparent",
-                color: selectedCards===v ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 16, transition: "all .2s",
+                aspectRatio: 1, border: `2px solid ${selectedCards === v ? "var(--accent)" : "var(--s2)"}`,
+                borderRadius: 10, background: selectedCards === v ? "rgba(255,209,102,.1)" : "transparent",
+                color: selectedCards === v ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 16, transition: "all .2s",
               }}>{v}</button>
             ))}
           </div>
@@ -937,6 +969,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
   const [totalPlayers, setTotalPlayers] = useState(1);
   const [showWin, setShowWin] = useState(false);
   const [ballAnimKey, setBallAnimKey] = useState(0);
+  const [isChangingCards, setIsChangingCards] = useState(false);
   const subsRef = useRef([]);
   const myCardsRef = useRef(initCards);
   const calledRef = useRef(initRoom.called_numbers || []);
@@ -944,51 +977,119 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
   useEffect(() => { myCardsRef.current = myCards; }, [myCards]);
   useEffect(() => { calledRef.current = called; }, [called]);
 
+  async function changeCardCount(count) {
+    if (count === myCards.length) return;
+    setIsChangingCards(true);
+    const newCards = Array.from({ length: count }, generateCard);
+    await db().from("players").update({ cards: newCards, has_bingo: false }).eq("id", initPlayer.id);
+    setIsChangingCards(false);
+  }
+
   useEffect(() => {
-    // Subscribe to room changes
+    // Subscribe to room changes safely checking defined fields
     const roomSub = db().channel(`player_room_${initRoom.id}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${initRoom.id}` }, (p) => {
         const r = p.new;
-        setPhase(r.phase);
-        const newNums = (r.called_numbers||[]).filter(n => !calledRef.current.includes(n));
-        setCalled(r.called_numbers||[]);
-        calledRef.current = r.called_numbers||[];
-        if (r.current_number && r.current_letter) {
+        if (r.phase !== undefined) setPhase(r.phase);
+
+        if (r.current_number !== undefined && r.current_letter !== undefined && r.current_number !== null) {
           setCurrentNum(r.current_number);
           setCurrentLetter(r.current_letter);
-          setBallAnimKey(k => k+1);
-          setTickerHistory(prev => [r.current_number, ...prev.slice(0,20)]);
+          setBallAnimKey(k => k + 1);
+          setTickerHistory(prev => [r.current_number, ...prev.slice(0, 20)]);
         }
-        // Apply new marks
-        if (newNums.length > 0) {
-          setMyCards(prev => {
-            let cards = [...prev];
-            let win = false;
-            for (let ci = 0; ci < cards.length; ci++) {
-              for (const num of newNums) {
-                const result = markCardNum(cards[ci], num);
-                if (result) {
-                  cards[ci] = result;
-                  if (checkBingo(result, "line") || checkBingo(result, "diagonal") || checkBingo(result, "full")) win = true;
+
+        if (r.called_numbers !== undefined && r.called_numbers !== null) {
+          if (r.called_numbers.length === 0) {
+            setTickerHistory([]);
+            setCurrentNum(null);
+            setCurrentLetter(null);
+          }
+
+          const newNums = r.called_numbers.filter(n => !calledRef.current.includes(n));
+          setCalled(r.called_numbers);
+          calledRef.current = r.called_numbers;
+
+          // Apply new marks
+          if (newNums.length > 0) {
+            setMyCards(prev => {
+              let cards = [...prev];
+              let win = false;
+              for (let ci = 0; ci < cards.length; ci++) {
+                for (const num of newNums) {
+                  const result = markCardNum(cards[ci], num);
+                  if (result) {
+                    cards[ci] = result;
+                    if (checkBingo(result, "line") || checkBingo(result, "diagonal") || checkBingo(result, "full")) win = true;
+                  }
                 }
               }
-            }
-            if (win) { setShowWin(true); speakRaw("BINGO! Parabéns, você ganhou o Bingão do TK!"); }
-            return cards;
-          });
+              if (win && !showWin) { setShowWin(true); speakRaw("BINGO! Parabéns, você ganhou o Bingão do TK!"); }
+              return cards;
+            });
+          }
         }
       })
       .subscribe();
 
-    // Subscribe players for count
+    // Fallback Polling (garante o destravamento caso o websocket falhe no exato instante inicial)
+    const pollInterval = setInterval(async () => {
+      const { data } = await db().from("rooms").select("phase, called_numbers, current_number, current_letter").eq("id", initRoom.id).maybeSingle();
+      if (data) {
+        if (data.phase) setPhase(data.phase);
+        if (data.called_numbers) {
+          if (data.called_numbers.length === 0) {
+            setTickerHistory([]);
+            setCurrentNum(null);
+            setCurrentLetter(null);
+            setCalled([]);
+            calledRef.current = [];
+          } else if (data.called_numbers.length > calledRef.current.length) {
+            const newNums = data.called_numbers.filter(n => !calledRef.current.includes(n));
+            setCalled(data.called_numbers);
+            calledRef.current = data.called_numbers;
+            if (data.current_number) setCurrentNum(data.current_number);
+            if (data.current_letter) setCurrentLetter(data.current_letter);
+
+            if (newNums.length > 0) {
+              setMyCards(prev => {
+                let cards = [...prev];
+                let win = false;
+                for (let ci = 0; ci < cards.length; ci++) {
+                  for (const num of newNums) {
+                    const result = markCardNum(cards[ci], num);
+                    if (result) {
+                      cards[ci] = result;
+                      if (checkBingo(result, "line") || checkBingo(result, "diagonal") || checkBingo(result, "full")) win = true;
+                    }
+                  }
+                }
+                if (win && !showWin) { setShowWin(true); speakRaw("BINGO! Parabéns, você ganhou o Bingão do TK!"); }
+                return cards;
+              });
+            }
+          }
+        }
+      }
+    }, 3500);
+
+    // Subscribe players for count and my own cards reset
     const pSub = db().channel(`player_players_${initRoom.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${initRoom.id}` }, async () => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${initRoom.id}` }, async (payload) => {
         const { data } = await db().from("players").select("id").eq("room_id", initRoom.id);
         if (data) setTotalPlayers(data.length);
+
+        if (payload.new && payload.new.id === initPlayer.id) {
+          if (payload.new.cards) setMyCards(payload.new.cards);
+          if (payload.new.has_bingo === false) setShowWin(false);
+        }
       }).subscribe();
 
     subsRef.current = [roomSub, pSub];
-    return () => subsRef.current.forEach(s => { try { db().removeChannel(s); } catch {} });
+    return () => {
+      clearInterval(pollInterval);
+      subsRef.current.forEach(s => { try { db().removeChannel(s); } catch { } });
+    };
   }, [initRoom.id]);
 
   const badgeText = phase === "running" ? "🟢 Ao vivo" : phase === "paused" ? "⏸ Pausado" : phase === "ended" ? "🔴 Encerrado" : "⏳ Aguardando";
@@ -998,7 +1099,9 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
     <div className="screen" style={{ background: "var(--bg)" }}>
       {/* Topbar */}
       <div className="safe-top" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 14px", background: "var(--s1)", borderBottom: "1px solid rgba(255,255,255,.05)", flexShrink: 0 }}>
-        <button onClick={onLeave} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+        {(phase === "waiting" || phase === "ended") ? (
+          <button onClick={onLeave} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+        ) : <div style={{ width: 38 }} />}
         <span className="rg" style={{ fontSize: 18 }}>Sala {initRoom.code}</span>
         <div style={{ background: "var(--s2)", padding: "6px 12px", borderRadius: 20, fontSize: 12, color: badgeColor, fontWeight: 700 }}>{badgeText}</div>
       </div>
@@ -1013,7 +1116,19 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
             <div className="rg" style={{ fontSize: 52, color: "var(--accent)" }}>{totalPlayers}</div>
             <div style={{ color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>na sala</div>
           </div>
-          <div style={{ color: "var(--accent)", fontSize: 14, fontWeight: 700 }}>✅ {myCards.length} cartela{myCards.length!==1?"s":""} gerada{myCards.length!==1?"s":""}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center", marginTop: 8 }}>
+            <div style={{ color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Mudar quantidade de cartelas:</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[1, 2, 3, 4, 5].map(v => (
+                <button key={v} onClick={() => changeCardCount(v)} disabled={isChangingCards} style={{
+                  width: 44, height: 44, border: `2px solid ${myCards.length === v ? "var(--accent)" : "var(--s2)"}`,
+                  borderRadius: 12, background: myCards.length === v ? "rgba(255,209,102,.1)" : "var(--s1)",
+                  color: myCards.length === v ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 16, transition: "all .2s",
+                  opacity: isChangingCards ? 0.5 : 1
+                }}>{v}</button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -1033,29 +1148,46 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
               {tickerHistory.slice(1).map((n, i) => (
                 <div key={`${n}_${i}`} className="rg" style={{
                   width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
-                  background: COL_HEX[getLetterForNum(n)], color: getLetterForNum(n)==="I"?"#1a1a1a":"#fff",
+                  background: COL_HEX[getLetterForNum(n)], color: getLetterForNum(n) === "I" ? "#1a1a1a" : "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, opacity: .7,
                 }}>{n}</div>
               ))}
             </div>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs as Shortcuts */}
           <div className="noscroll" style={{ display: "flex", gap: 8, padding: "12px 16px 0", overflowX: "auto", flexShrink: 0 }}>
             {myCards.map((_, i) => (
-              <button key={i} onClick={() => setActiveCard(i)} style={{
+              <button key={i} onClick={() => {
+                setActiveCard(i);
+                document.getElementById(`playercard-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }} style={{
                 padding: "8px 18px", borderRadius: 50, fontSize: 13, fontWeight: 700,
-                border: `2px solid ${activeCard===i ? "var(--accent)" : "var(--s2)"}`,
-                color: activeCard===i ? "var(--accent)" : "var(--muted)",
-                background: activeCard===i ? "rgba(255,209,102,.08)" : "transparent",
+                border: `2px solid ${activeCard === i ? "var(--accent)" : "var(--s2)"}`,
+                color: activeCard === i ? "var(--accent)" : "var(--muted)",
+                background: activeCard === i ? "rgba(255,209,102,.08)" : "transparent",
                 whiteSpace: "nowrap", flexShrink: 0, transition: "all .2s",
-              }}>Cartela {i+1}</button>
+              }}>Cartela {i + 1}</button>
             ))}
           </div>
 
-          {/* Card */}
-          <div style={{ flex: 1, padding: "10px 14px 14px", display: "flex", flexDirection: "column" }}>
-            {myCards[activeCard] && <Cartela card={myCards[activeCard]} />}
+          {/* Cards Scrollable Container */}
+          <div style={{ flex: 1, padding: "10px 14px 14px", display: "flex", flexDirection: "column", overflowY: "auto", gap: 24 }} onScroll={(e) => {
+            const container = e.currentTarget;
+            if (myCards.length > 0) {
+              const scrollY = container.scrollTop;
+              const cardHeight = container.scrollHeight / myCards.length;
+              if (cardHeight > 0) {
+                const idx = Math.round(scrollY / cardHeight);
+                if (idx >= 0 && idx < myCards.length && idx !== activeCard) setActiveCard(idx);
+              }
+            }
+          }}>
+            {myCards.map((card, idx) => (
+              <div key={idx} id={`playercard-${idx}`} style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+                <Cartela card={card} />
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -1072,8 +1204,26 @@ export default function App() {
   useCSS();
   const [screen, setScreen] = useState("splash");
   const [joinData, setJoinData] = useState(null);
+  const [hostData, setHostData] = useState(null);
   const [toast, showToast] = useToast();
 
+  useEffect(() => {
+    const session = localStorage.getItem("bingao_session");
+    if (session) {
+      try {
+        const data = JSON.parse(session);
+        if (data.role === "host") {
+          setHostData({ roomId: data.roomId, roomCode: data.roomCode, playerId: data.playerId });
+          setScreen("host");
+        } else if (data.role === "player" && data.joinData) {
+          setJoinData(data.joinData);
+          setScreen("player");
+        }
+      } catch (e) {
+        localStorage.removeItem("bingao_session");
+      }
+    }
+  }, []);
   return (
     <>
       <Toast {...toast} />
@@ -1087,7 +1237,12 @@ export default function App() {
 
       {screen === "host" && (
         <HostScreen
-          onLeave={() => setScreen("splash")}
+          initialData={hostData}
+          onLeave={() => {
+            localStorage.removeItem("bingao_session");
+            setHostData(null);
+            setScreen("splash");
+          }}
           showToast={showToast}
         />
       )}
@@ -1095,7 +1250,11 @@ export default function App() {
       {screen === "join" && (
         <JoinScreen
           onBack={() => setScreen("splash")}
-          onJoined={(data) => { setJoinData(data); setScreen("player"); }}
+          onJoined={(data) => {
+            localStorage.setItem("bingao_session", JSON.stringify({ role: "player", joinData: data }));
+            setJoinData(data);
+            setScreen("player");
+          }}
         />
       )}
 
@@ -1104,7 +1263,11 @@ export default function App() {
           room={joinData.room}
           player={joinData.player}
           cards={joinData.cards}
-          onLeave={() => { setJoinData(null); setScreen("splash"); }}
+          onLeave={() => {
+            localStorage.removeItem("bingao_session");
+            setJoinData(null);
+            setScreen("splash");
+          }}
         />
       )}
     </>
