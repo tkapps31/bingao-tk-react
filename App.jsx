@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createClient } from "@supabase/supabase-js";
+import Swal from "sweetalert2";
 
 /* ─────────────────────────────────────────────
    SUPABASE CLIENT — reads from env vars
@@ -145,13 +146,23 @@ function speakNumber(letter, num, lang, rate, style) {
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:wght@400;500;600;700;800&display=swap');
 :root {
+  /* Default Light Mode */
+  --bg:#F5F7FA; --s1:#FFFFFF; --s2:#E4E7EB; --s3:#D1D5DB;
+  --text:#111827; --muted:#6B7280; --accent:#F59E0B;
+  --card-bg:#FFFFFF; --card-border:#D1D5DB; --grid-border:#E5E7EB;
   --b:#FF5A5A; --i:#FFD166; --n:#06D6A0; --g:#4895EF; --o:#F77F00;
-  --bg:#0C0B16; --s1:#161424; --s2:#1E1C2E; --s3:#282640;
-  --text:#F2F0FF; --muted:#7E7B9A; --accent:#FFD166;
-  --r:18px; --cr:13px;
+  --marker: rgba(255, 60, 60, 0.65);
+  --r:16px; --cr:12px;
 }
+.dark-mode {
+  /* Dark Mode */
+  --bg:#121212; --s1:#1E1E1E; --s2:#2C2C2C; --s3:#3D3D3D;
+  --text:#F5F5F5; --muted:#9E9E9E; --accent:#FFD166;
+  --card-bg:#1A1A1A; --card-border:#333; --grid-border:#444; 
+}
+
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body,#root{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+html,body,#root{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .3s, color .3s}
 .rg{font-family:'Righteous',cursive}
 button{cursor:pointer;font-family:'DM Sans',sans-serif}
 
@@ -161,18 +172,13 @@ button{cursor:pointer;font-family:'DM Sans',sans-serif}
 
 /* Animations */
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-@keyframes logopulse{0%,100%{filter:drop-shadow(0 0 40px rgba(255,209,102,.35))}50%{filter:drop-shadow(0 0 70px rgba(255,209,102,.7))}}
 @keyframes ballpop{0%{transform:scale(.3) rotate(-15deg)}55%{transform:scale(1.18) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
-@keyframes cellin{0%{transform:scale(.65)}60%{transform:scale(1.15)}100%{transform:scale(1.06)}}
-@keyframes chipin{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes dauberin{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.1);opacity:1}100%{transform:scale(1);opacity:1}}
 @keyframes ballin{from{transform:scale(0)}to{transform:scale(1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes shake{0%,100%{transform:rotate(0)}25%{transform:rotate(-10deg)}75%{transform:rotate(10deg)}}
-@keyframes winpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-@keyframes confettifall{to{transform:translateY(110vh) rotate(720deg);opacity:0}}
 @keyframes fadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastin{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-@keyframes slidein{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;animation:fadein .3s ease}
 .float{animation:float 3s ease-in-out infinite}
@@ -193,6 +199,35 @@ function useCSS() {
 }
 
 /* ─────────────────────────────────────────────
+   THEME TOGGLE
+───────────────────────────────────────────── */
+function ThemeToggle() {
+  const [isLight, setIsLight] = useState(() => !document.body.classList.contains('dark-mode'));
+
+  useEffect(() => {
+    const saved = localStorage.getItem('bingao_theme');
+    if (saved === 'dark') { document.body.classList.add('dark-mode'); setIsLight(false); }
+    else if (saved === 'light') { document.body.classList.remove('dark-mode'); setIsLight(true); }
+    else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      document.body.classList.add('dark-mode'); setIsLight(false);
+    }
+  }, []);
+
+  const toggle = () => {
+    const next = !isLight;
+    if (next) { document.body.classList.remove('dark-mode'); localStorage.setItem('bingao_theme', 'light'); }
+    else { document.body.classList.add('dark-mode'); localStorage.setItem('bingao_theme', 'dark'); }
+    setIsLight(next);
+  };
+
+  return (
+    <button onClick={toggle} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+      {isLight ? "🌙" : "☀️"}
+    </button>
+  );
+}
+
+/* ─────────────────────────────────────────────
    TOAST
 ───────────────────────────────────────────── */
 function Toast({ msg, type, visible }) {
@@ -202,7 +237,7 @@ function Toast({ msg, type, visible }) {
     <div style={{
       position: "fixed", top: "max(20px, env(safe-area-inset-top))", left: "50%",
       transform: "translateX(-50%)", background: "var(--s1)",
-      border: `1px solid ${colors[type] || colors.info}33`,
+      border: `1px solid ${colors[type] || colors.info} 33`,
       color: colors[type] || colors.info,
       borderRadius: 50, padding: "11px 22px", fontSize: 14, fontWeight: 700,
       zIndex: 900, whiteSpace: "nowrap", boxShadow: "0 8px 32px rgba(0,0,0,.5)",
@@ -248,7 +283,7 @@ function SplashScreen({ onHost, onPlayer }) {
   return (
     <div className="screen" style={{
       background: "radial-gradient(ellipse at 50% -10%,#1e0a32 0%,var(--bg) 65%)",
-      alignItems: "center", justifyContent: "center", gap: 18, position: "relative", overflow: "hidden",
+      alignItems: "center", justifyContent: "center", gap: 18, overflow: "hidden",
     }}>
       {/* bg dots */}
       <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(255,255,255,.025) 1px, transparent 1px)", backgroundSize: "32px 32px", pointerEvents: "none" }} />
@@ -259,7 +294,7 @@ function SplashScreen({ onHost, onPlayer }) {
         filter: "drop-shadow(0 0 20px rgba(6, 214, 160, .35))",
       }}>Bingão<br />do TK</div>
 
-      <div style={{ color: "var(--muted)", fontSize: 15, margin: "4px 0 12px" }}>O bingo que todo mundo ama 🎉</div>
+      <div style={{ color: "var(--muted)", fontSize: 15 }}>O bingo que todo mundo ama 🎉</div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 280 }}>
         {[
@@ -269,7 +304,7 @@ function SplashScreen({ onHost, onPlayer }) {
           <button key={label} onClick={onClick} style={{
             padding: "16px 28px", border: "none", borderRadius: 50,
             fontFamily: "'DM Sans',sans-serif", fontSize: 17, fontWeight: 800,
-            background: grad, color: "#fff", boxShadow: `0 8px 28px ${shadow}`,
+            background: grad, color: "#fff", boxShadow: `0 8px 28px ${shadow} `,
             transition: "transform .15s",
           }} onMouseDown={e => e.currentTarget.style.transform = "scale(.96)"} onMouseUp={e => e.currentTarget.style.transform = ""}>{label}</button>
         ))}
@@ -313,7 +348,7 @@ function WinOverlay({ onClose }) {
   const confettiColors = ["#FF5A5A", "#FFD166", "#06D6A0", "#4895EF", "#F77F00", "#fff", "#FF99CC"];
   const pieces = useMemo(() => Array.from({ length: 100 }, (_, i) => ({
     id: i,
-    left: `${Math.random() * 100}vw`,
+    left: `${Math.random() * 100} vw`,
     bg: confettiColors[Math.floor(Math.random() * confettiColors.length)],
     isCircle: Math.random() > .5,
     dur: 1.5 + Math.random() * 2.5,
@@ -353,33 +388,32 @@ function WinOverlay({ onClose }) {
 ───────────────────────────────────────────── */
 function Cartela({ card }) {
   return (
-    <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 12, flex: 1, display: "flex", flexDirection: "column", border: "1px solid rgba(255,255,255,.04)" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 5, marginBottom: 7 }}>
+    <div style={{ background: "var(--card-bg)", borderRadius: "var(--r)", padding: "16px 12px", flex: 1, display: "flex", flexDirection: "column", border: "1px solid var(--grid-border)", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 2, marginBottom: 8 }}>
         {COLS.map(c => (
-          <div key={c} className="rg" style={{ textAlign: "center", fontSize: 22, padding: "4px 0", borderRadius: 8, color: COL_HEX[c] }}>{c}</div>
+          <div key={c} className="rg" style={{ textAlign: "center", fontSize: 26, padding: "4px 0", color: "var(--text)" }}>{c}</div>
         ))}
       </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 5, flex: 1 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 1, flex: 1, background: "var(--grid-border)", border: "2px solid var(--grid-border)" }}>
         {Array.from({ length: 5 }, (_, r) => COLS.map(c => {
           const isFree = c === "N" && r === 2;
           const isMarked = isMk(card, c, r);
-          const markedStyle = isMarked ? {
-            background: COL_HEX[c], color: c === "I" ? "#1a1a1a" : "#fff",
-            transform: "scale(1.07)", boxShadow: "0 4px 14px rgba(0,0,0,.35)",
-            animation: "cellin .4s cubic-bezier(.34,1.56,.64,1)",
-          } : {};
+
           return (
             <div key={`${c}${r}`} style={{
-              borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-              fontWeight: 800, fontSize: "clamp(13px,4.2vw,20px)",
-              background: isFree ? "linear-gradient(135deg,var(--n),var(--g))" : "var(--s2)",
-              color: isFree ? "#fff" : isMarked ? undefined : "var(--muted)",
-              minHeight: 44, position: "relative", overflow: "hidden",
-              transition: "background .3s, transform .3s",
-              ...markedStyle,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontWeight: 700, fontSize: "clamp(16px,4.5vw,22px)",
+              background: "var(--card-bg)", color: "var(--text)",
+              minHeight: 48, position: "relative", overflow: "hidden",
             }}>
-              {isFree ? <span style={{ fontSize: 18, textAlign: "center", fontWeight: 900 }}>TK</span> : card[c][r]}
-              {isMarked && !isFree && <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,.08)", pointerEvents: "none" }} />}
+              {isFree ? <span style={{ fontSize: 16, textAlign: "center", fontWeight: 900 }}>TK</span> : card[c][r]}
+              {isMarked && (
+                <div style={{
+                  position: "absolute", width: "86%", height: "86%",
+                  borderRadius: 6, background: COL_HEX[c] + "66", border: `3px solid ${COL_HEX[c]}`,
+                  animation: "dauberin .15s cubic-bezier(.34,1.56,.64,1) forwards", pointerEvents: "none"
+                }} />
+              )}
             </div>
           );
         }))}
@@ -398,7 +432,7 @@ function MiniBall({ num, letter, size = 34 }) {
       display: "flex", alignItems: "center", justifyContent: "center",
       background: COL_HEX[letter], color: letter === "I" ? "#1a1a1a" : "#fff",
       fontSize: size < 34 ? 10 : 12, animation: "ballin .3s cubic-bezier(.34,1.56,.64,1)",
-      boxShadow: `0 2px 10px ${COL_HEX[letter]}44`,
+      boxShadow: `0 2px 10px ${COL_HEX[letter]} 44`,
     }}>{num}</div>
   );
 }
@@ -416,7 +450,7 @@ function BigBall({ num, letter, animKey }) {
           width: 114, height: 114, borderRadius: "50%",
           background: col || "var(--s2)",
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-          boxShadow: col ? `0 0 50px ${col}55, 0 8px 32px rgba(0,0,0,.4)` : "none",
+          boxShadow: col ? `0 0 50px ${col} 55, 0 8px 32px rgba(0, 0, 0, .4)` : "none",
           transition: "background .3s",
         }}>
           <span className="rg" style={{ fontSize: 28, opacity: .9, lineHeight: 1 }}>{letter || "–"}</span>
@@ -454,6 +488,7 @@ function HostScreen({ onLeave, showToast, initialData }) {
   const subsRef = useRef([]);
   const calledRef = useRef([]);
   const phaseRef = useRef("waiting");
+  const isCallingRef = useRef(false);
 
   useEffect(() => { calledRef.current = called; }, [called]);
   useEffect(() => { phaseRef.current = phase; }, [phase]);
@@ -492,12 +527,15 @@ function HostScreen({ onLeave, showToast, initialData }) {
               const evt = p.new;
               if (evt.type === "bingo_claim" && phaseRef.current === "running") {
                 clearAutoInterval();
+                setAutoMode(false);
+                phaseRef.current = "ended";
+
                 const pname = evt.payload?.player_name || "Jogador";
                 db().from("rooms").update({ phase: "ended", winner_player_id: evt.player_id }).eq("id", room.id);
                 db().from("room_events").insert({ room_id: room.id, type: "bingo_confirmed", player_id: evt.player_id });
                 setPhase("ended");
                 setEndedSummary(`🏆 ${pname} venceu com ${calledRef.current.length} números chamados!`);
-                speakRaw(`Parabéns ${pname}! Você ganhou o Bingão do TK!`);
+                speakRaw(`Parabéns ${pname} !Você ganhou o Bingão do TK!`);
               }
             }).subscribe();
 
@@ -547,6 +585,8 @@ function HostScreen({ onLeave, showToast, initialData }) {
             const evt = p.new;
             if (evt.type === "bingo_claim" && phaseRef.current === "running") {
               clearAutoInterval();
+              setAutoMode(false);
+              phaseRef.current = "ended";
 
               const pname = evt.payload?.player_name || "Jogador";
               db().from("rooms").update({ phase: "ended", winner_player_id: evt.player_id }).eq("id", room.id);
@@ -554,7 +594,7 @@ function HostScreen({ onLeave, showToast, initialData }) {
 
               setPhase("ended");
               setEndedSummary(`🏆 ${pname} venceu com ${calledRef.current.length} números chamados!`);
-              speakRaw(`Parabéns ${pname}! Você ganhou o Bingão do TK!`);
+              speakRaw(`Parabéns ${pname} !Você ganhou o Bingão do TK!`);
             }
           }).subscribe();
 
@@ -595,23 +635,30 @@ function HostScreen({ onLeave, showToast, initialData }) {
 
   async function callNumber() {
     if (phaseRef.current !== "running") return;
-    const remaining = Array.from({ length: 75 }, (_, i) => i + 1).filter(n => !calledRef.current.includes(n));
-    if (remaining.length === 0) { endGame(); return; }
-    const num = remaining[Math.floor(Math.random() * remaining.length)];
-    const letter = getLetterForNum(num);
-    const newCalled = [...calledRef.current, num];
+    if (isCallingRef.current) return;
+    isCallingRef.current = true;
 
-    const { error } = await db().from("rooms").update({
-      called_numbers: newCalled, current_number: num, current_letter: letter,
-    }).eq("id", roomId);
-    if (error) return;
+    try {
+      const remaining = Array.from({ length: 75 }, (_, i) => i + 1).filter(n => !calledRef.current.includes(n));
+      if (remaining.length === 0) { endGame(); return; }
+      const num = remaining[Math.floor(Math.random() * remaining.length)];
+      const letter = getLetterForNum(num);
+      const newCalled = [...calledRef.current, num];
 
-    setCalled(newCalled);
-    setCurrentNum(num);
-    setCurrentLetter(letter);
-    setBallAnimKey(k => k + 1);
-    speakNumber(letter, num, voiceLang, voiceRate, callStyle);
-    await checkAllCards(num, newCalled, roomId, winPattern, playerId);
+      const { error } = await db().from("rooms").update({
+        called_numbers: newCalled, current_number: num, current_letter: letter,
+      }).eq("id", roomId);
+      if (error) return;
+
+      setCalled(newCalled);
+      setCurrentNum(num);
+      setCurrentLetter(letter);
+      setBallAnimKey(k => k + 1);
+      speakNumber(letter, num, voiceLang, voiceRate, callStyle);
+      await checkAllCards(num, newCalled, roomId, winPattern, playerId);
+    } finally {
+      isCallingRef.current = false;
+    }
   }
 
   async function checkAllCards(num, allCalled, rid, pattern, hid) {
@@ -628,6 +675,7 @@ function HostScreen({ onLeave, showToast, initialData }) {
           updated = true;
           if (checkBingo(result, pattern)) {
             clearAutoInterval();
+            setAutoMode(false);
             phaseRef.current = "ended";
             setPhase("ended");
 
@@ -659,7 +707,6 @@ function HostScreen({ onLeave, showToast, initialData }) {
   }
 
   async function endGame() {
-    if (phase !== "idle" && !window.confirm("Encerrar a partida?")) return;
     clearAutoInterval();
     await db().from("rooms").update({ phase: "ended" }).eq("id", roomId);
     await db().from("room_events").insert({ room_id: roomId, type: "game_ended", player_id: playerId });
@@ -668,19 +715,33 @@ function HostScreen({ onLeave, showToast, initialData }) {
   }
 
   async function restartGame() {
+    const result = await Swal.fire({
+      title: 'Deseja reiniciar a partida?',
+      text: "Isso levará todos os jogadores de volta para o lobby de espera.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#06D6A0',
+      cancelButtonColor: '#FF5A5A',
+      confirmButtonText: 'Sim, reiniciar!',
+      cancelButtonText: 'Cancelar',
+      background: document.body.classList.contains('light-mode') ? '#FFFFFF' : '#1A1A1A',
+      color: document.body.classList.contains('light-mode') ? '#111827' : '#FFFFFF',
+    });
+
+    if (!result.isConfirmed) return;
+
     setCalled([]); setCurrentNum(null); setCurrentLetter(null);
     setPhase("waiting"); setAutoMode(false); clearAutoInterval();
     await db().from("rooms").update({ phase: "waiting", called_numbers: [], current_number: null, current_letter: null }).eq("id", roomId);
 
-    // Regenerate cards for all non-host players
     const { data: ps } = await db().from("players").select("*").eq("room_id", roomId).eq("is_host", false);
     if (ps) {
       for (const p of ps) {
+        // Keeps user's cards configuration intact (same number of cards but new ones)
         const newCards = Array.from({ length: (p.cards || []).length }, generateCard);
         await db().from("players").update({ cards: newCards, has_bingo: false }).eq("id", p.id);
       }
     }
-    // Also clear has_bingo for host
     await db().from("players").update({ has_bingo: false }).eq("room_id", roomId).eq("is_host", true);
 
     showToast("Nova rodada! 🎉", "success");
@@ -711,10 +772,16 @@ function HostScreen({ onLeave, showToast, initialData }) {
         {(phase === "waiting" || phase === "ended") ? (
           <button onClick={onLeave} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
         ) : <div style={{ width: 38 }} />}
-        <span className="rg" style={{ fontSize: 18 }}>🎤 Bingão do TK</span>
-        {phase !== "waiting" ? (
-          <button onClick={() => setShowQRModal(true)} style={{ width: 38, height: 38, border: "none", background: "var(--accent)", borderRadius: 11, color: "#0C0B16", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>⊞</button>
-        ) : <div style={{ width: 38 }} />}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <span className="rg" style={{ fontSize: 18, lineHeight: 1.2 }}>🎤 Bingão do TK</span>
+          <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700 }}>Sala {roomCode}</span>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ThemeToggle />
+          {phase !== "waiting" && (
+            <button onClick={() => setShowQRModal(true)} style={{ width: 38, height: 38, border: "none", background: "var(--accent)", borderRadius: 11, color: "#0C0B16", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>⊞</button>
+          )}
+        </div>
       </div>
 
       {/* Body */}
@@ -838,7 +905,7 @@ function HostScreen({ onLeave, showToast, initialData }) {
                   const n = lo + i;
                   const isCalled = called.includes(n);
                   return (
-                    <div key={`${c}${n}`} style={{
+                    <div key={`${c}${n} `} style={{
                       aspectRatio: 1, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 9, fontWeight: 700, minHeight: 18,
                       background: isCalled ? COL_HEX[c] : "var(--s2)",
@@ -920,36 +987,44 @@ function JoinScreen({ onBack, onJoined }) {
   const inputStyle = { background: "var(--s2)", border: "2px solid transparent", borderRadius: 12, padding: "13px 15px", fontFamily: "'DM Sans',sans-serif", fontSize: 15, color: "var(--text)", outline: "none", width: "100%" };
 
   return (
-    <div className="screen" style={{ background: "radial-gradient(ellipse at 50% 0%,#0e1a2e,var(--bg) 65%)", alignItems: "center", justifyContent: "center", padding: 20, gap: 16, overflowY: "auto" }}>
-      {loading && <Loading text="Entrando na sala..." />}
-      <div className="rg" style={{ fontSize: 34, background: "linear-gradient(135deg,#4895EF,#06D6A0)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>🎮 Bingão do TK</div>
-      <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 22, width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 15 }}>
-        {/* Code */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Código da Sala</label>
-          <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="" maxLength={6}
-            style={{ ...inputStyle, textTransform: "uppercase", letterSpacing: 5, fontFamily: "'Righteous',cursive", fontSize: 26, textAlign: "center" }} />
+    <div className="screen" style={{ background: "radial-gradient(ellipse at 50% 0%,#0e1a2e,var(--bg) 65%)", alignItems: "center", overflowY: "auto" }}>
+      <div className="safe-top" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px 14px", background: "var(--s1)", borderBottom: "1px solid rgba(255,255,255,.05)", flexShrink: 0, width: "100%" }}>
+        <button onClick={onBack} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <span className="rg" style={{ fontSize: 18, lineHeight: 1.2 }}>🎤 Bingão do TK</span>
         </div>
-        {/* Name */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Seu Nome (opcional)</label>
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Como quer ser chamado?" maxLength={20} style={inputStyle} />
-        </div>
-        {/* Cards */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Quantidade de Cartelas</label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
-            {[1, 2, 3, 4, 5].map(v => (
-              <button key={v} onClick={() => setSelectedCards(v)} style={{
-                aspectRatio: 1, border: `2px solid ${selectedCards === v ? "var(--accent)" : "var(--s2)"}`,
-                borderRadius: 10, background: selectedCards === v ? "rgba(255,209,102,.1)" : "transparent",
-                color: selectedCards === v ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 16, transition: "all .2s",
-              }}>{v}</button>
-            ))}
+        <div style={{ width: 38 }} />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20, gap: 16, width: "100%", flex: 1 }}>
+        {loading && <Loading text="Entrando na sala..." />}
+        <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 22, width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 15 }}>
+          {/* Code */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Código da Sala</label>
+            <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="" maxLength={6}
+              style={{ ...inputStyle, textTransform: "uppercase", letterSpacing: 5, fontFamily: "'Righteous',cursive", fontSize: 26, textAlign: "center" }} />
           </div>
+          {/* Name */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Seu Nome (opcional)</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Como quer ser chamado?" maxLength={20} style={inputStyle} />
+          </div>
+          {/* Cards */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <label style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Quantidade de Cartelas</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
+              {[1, 2, 3, 4, 5].map(v => (
+                <button key={v} onClick={() => setSelectedCards(v)} style={{
+                  aspectRatio: 1, border: `2px solid ${selectedCards === v ? "var(--accent)" : "var(--s2)"} `,
+                  borderRadius: 10, background: selectedCards === v ? "rgba(255,209,102,.1)" : "transparent",
+                  color: selectedCards === v ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 16, transition: "all .2s",
+                }}>{v}</button>
+              ))}
+            </div>
+          </div>
+          <button onClick={handleJoin} style={{ background: "linear-gradient(135deg,#4895EF,#06D6A0)", color: "#fff", border: "none", borderRadius: 50, padding: 15, fontFamily: "'Righteous',cursive", fontSize: 19, boxShadow: "0 8px 28px rgba(72,149,239,.3)" }}>Entrar na Partida →</button>
         </div>
-        <button onClick={handleJoin} style={{ background: "linear-gradient(135deg,#4895EF,#06D6A0)", color: "#fff", border: "none", borderRadius: 50, padding: 15, fontFamily: "'Righteous',cursive", fontSize: 19, boxShadow: "0 8px 28px rgba(72,149,239,.3)" }}>Entrar na Partida →</button>
-        <button onClick={onBack} style={{ background: "var(--s2)", color: "var(--muted)", border: "none", borderRadius: 50, padding: 13, fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 700 }}>← Voltar</button>
       </div>
     </div>
   );
@@ -981,14 +1056,15 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
     if (count === myCards.length) return;
     setIsChangingCards(true);
     const newCards = Array.from({ length: count }, generateCard);
+    setMyCards(newCards);
     await db().from("players").update({ cards: newCards, has_bingo: false }).eq("id", initPlayer.id);
     setIsChangingCards(false);
   }
 
   useEffect(() => {
     // Subscribe to room changes safely checking defined fields
-    const roomSub = db().channel(`player_room_${initRoom.id}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${initRoom.id}` }, (p) => {
+    const roomSub = db().channel(`player_room_${initRoom.id} `)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id = eq.${initRoom.id} ` }, (p) => {
         const r = p.new;
         if (r.phase !== undefined) setPhase(r.phase);
 
@@ -996,7 +1072,6 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
           setCurrentNum(r.current_number);
           setCurrentLetter(r.current_letter);
           setBallAnimKey(k => k + 1);
-          setTickerHistory(prev => [r.current_number, ...prev.slice(0, 20)]);
         }
 
         if (r.called_numbers !== undefined && r.called_numbers !== null) {
@@ -1009,6 +1084,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
           const newNums = r.called_numbers.filter(n => !calledRef.current.includes(n));
           setCalled(r.called_numbers);
           calledRef.current = r.called_numbers;
+          setTickerHistory([...r.called_numbers].reverse());
 
           // Apply new marks
           if (newNums.length > 0) {
@@ -1048,6 +1124,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
             const newNums = data.called_numbers.filter(n => !calledRef.current.includes(n));
             setCalled(data.called_numbers);
             calledRef.current = data.called_numbers;
+            setTickerHistory([...data.called_numbers].reverse());
             if (data.current_number) setCurrentNum(data.current_number);
             if (data.current_letter) setCurrentLetter(data.current_letter);
 
@@ -1102,8 +1179,14 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
         {(phase === "waiting" || phase === "ended") ? (
           <button onClick={onLeave} style={{ width: 38, height: 38, border: "none", background: "var(--s2)", borderRadius: 11, color: "var(--text)", fontSize: 17, display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
         ) : <div style={{ width: 38 }} />}
-        <span className="rg" style={{ fontSize: 18 }}>Sala {initRoom.code}</span>
-        <div style={{ background: "var(--s2)", padding: "6px 12px", borderRadius: 20, fontSize: 12, color: badgeColor, fontWeight: 700 }}>{badgeText}</div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <span className="rg" style={{ fontSize: 18, lineHeight: 1.2 }}>Bingão do TK</span>
+          <span style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700 }}>Boa Sorte {initPlayer.name}!</span>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <ThemeToggle />
+          <div style={{ background: "var(--s2)", padding: "6px 12px", borderRadius: 20, fontSize: 12, color: badgeColor, fontWeight: 700 }}>{badgeText}</div>
+        </div>
       </div>
 
       {/* WAITING */}
@@ -1121,13 +1204,36 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
             <div style={{ display: "flex", gap: 8 }}>
               {[1, 2, 3, 4, 5].map(v => (
                 <button key={v} onClick={() => changeCardCount(v)} disabled={isChangingCards} style={{
-                  width: 44, height: 44, border: `2px solid ${myCards.length === v ? "var(--accent)" : "var(--s2)"}`,
+                  width: 44, height: 44, border: `2px solid ${myCards.length === v ? "var(--accent)" : "var(--s2)"} `,
                   borderRadius: 12, background: myCards.length === v ? "rgba(255,209,102,.1)" : "var(--s1)",
                   color: myCards.length === v ? "var(--accent)" : "var(--muted)", fontWeight: 800, fontSize: 16, transition: "all .2s",
                   opacity: isChangingCards ? 0.5 : 1
                 }}>{v}</button>
               ))}
             </div>
+
+            <button onClick={async () => {
+              const result = await Swal.fire({
+                title: 'Parar de jogar?',
+                text: "Você tem certeza que quer sair da partida?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#FF5A5A',
+                cancelButtonColor: '#4895EF',
+                confirmButtonText: 'Sim, sair!',
+                cancelButtonText: 'Cancelar',
+                background: document.body.classList.contains('light-mode') ? '#FFFFFF' : '#1A1A1A',
+                color: document.body.classList.contains('light-mode') ? '#111827' : '#FFFFFF',
+              });
+
+              if (result.isConfirmed) {
+                // Remove player from the room or clean up session and return to splash
+                onLeave();
+              }
+            }} style={{
+              marginTop: 18, background: "rgba(255,90,90,.1)", border: "1px solid #FF5A5A", color: "#FF5A5A",
+              borderRadius: 50, padding: "12px 24px", fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 700
+            }}>🚪 Parar de Jogar</button>
           </div>
         </div>
       )}
@@ -1146,7 +1252,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
             </div>
             <div className="noscroll" style={{ display: "flex", gap: 6, overflowX: "auto", flex: 1, alignItems: "center" }}>
               {tickerHistory.slice(1).map((n, i) => (
-                <div key={`${n}_${i}`} className="rg" style={{
+                <div key={`${n}_${i} `} className="rg" style={{
                   width: 30, height: 30, borderRadius: "50%", flexShrink: 0,
                   background: COL_HEX[getLetterForNum(n)], color: getLetterForNum(n) === "I" ? "#1a1a1a" : "#fff",
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, opacity: .7,
@@ -1163,11 +1269,11 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
                 document.getElementById(`playercard-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }} style={{
                 padding: "8px 18px", borderRadius: 50, fontSize: 13, fontWeight: 700,
-                border: `2px solid ${activeCard === i ? "var(--accent)" : "var(--s2)"}`,
+                border: `2px solid ${activeCard === i ? "var(--accent)" : "var(--s2)"} `,
                 color: activeCard === i ? "var(--accent)" : "var(--muted)",
                 background: activeCard === i ? "rgba(255,209,102,.08)" : "transparent",
                 whiteSpace: "nowrap", flexShrink: 0, transition: "all .2s",
-              }}>Cartela {i + 1}</button>
+              }}>{i + 1}</button>
             ))}
           </div>
 
