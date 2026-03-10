@@ -802,7 +802,6 @@ function HostScreen({ onLeave, showToast, initialData }) {
           <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
             {{ line: "➖ Linha", full: "⬛ Cartela Cheia", diagonal: "✖️ Diagonal" }[winPattern] || winPattern}
           </span>
-          <span style={{ fontSize: 10, color: "var(--muted)", background: "var(--s2)", borderRadius: 20, padding: "2px 8px", marginLeft: 2 }}>🔒 fixo</span>
         </div>
       )}
 
@@ -1074,6 +1073,7 @@ function JoinScreen({ onBack, onJoined, initialCode = "" }) {
 ───────────────────────────────────────────── */
 function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, onLeave }) {
   const [phase, setPhase] = useState(initRoom.phase);
+  const [winPattern, setWinPattern] = useState(initRoom.win_pattern || "line");
   const [myCards, setMyCards] = useState(initCards);
   const [called, setCalled] = useState(initRoom.called_numbers || []);
   const [currentNum, setCurrentNum] = useState(initRoom.current_number);
@@ -1084,9 +1084,11 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
   const [showWin, setShowWin] = useState(false);
   const [ballAnimKey, setBallAnimKey] = useState(0);
   const [isChangingCards, setIsChangingCards] = useState(false);
+  const [winnerName, setWinnerName] = useState("");
   const subsRef = useRef([]);
   const myCardsRef = useRef(initCards);
   const calledRef = useRef(initRoom.called_numbers || []);
+  const winPatternRef = useRef(initRoom.win_pattern || "line");
 
   useEffect(() => { myCardsRef.current = myCards; }, [myCards]);
   useEffect(() => { calledRef.current = called; }, [called]);
@@ -1100,12 +1102,33 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
     setIsChangingCards(false);
   }
 
+  // Load winner name when game ends (covers realtime + restore from DB)
+  useEffect(() => {
+    if (phase !== "ended") return;
+    if (winnerName) return; // already have it from realtime
+    async function loadWinner() {
+      const { data } = await db().from("room_events")
+        .select("payload")
+        .eq("room_id", initRoom.id)
+        .eq("type", "bingo_claim")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data?.payload?.player_name) setWinnerName(data.payload.player_name);
+    }
+    loadWinner();
+  }, [phase, initRoom.id]);
+
   useEffect(() => {
     // Subscribe to room changes safely checking defined fields
     const roomSub = db().channel(`player_room_${initRoom.id} `)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "rooms", filter: `id = eq.${initRoom.id} ` }, (p) => {
         const r = p.new;
         if (r.phase !== undefined) setPhase(r.phase);
+        if (r.win_pattern !== undefined && r.win_pattern !== null) {
+          setWinPattern(r.win_pattern);
+          winPatternRef.current = r.win_pattern;
+        }
 
         if (r.current_number !== undefined && r.current_letter !== undefined && r.current_number !== null) {
           setCurrentNum(r.current_number);
@@ -1135,7 +1158,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
                   const result = markCardNum(cards[ci], num);
                   if (result) {
                     cards[ci] = result;
-                    if (checkBingo(result, "line") || checkBingo(result, "diagonal") || checkBingo(result, "full")) win = true;
+                    if (checkBingo(result, winPatternRef.current)) win = true;
                   }
                 }
               }
@@ -1176,7 +1199,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
                     const result = markCardNum(cards[ci], num);
                     if (result) {
                       cards[ci] = result;
-                      if (checkBingo(result, "line") || checkBingo(result, "diagonal") || checkBingo(result, "full")) win = true;
+                      if (checkBingo(result, winPatternRef.current)) win = true;
                     }
                   }
                 }
@@ -1201,7 +1224,17 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
         }
       }).subscribe();
 
-    subsRef.current = [roomSub, pSub];
+    // Subscribe events (bingo_claim → winner name)
+    const eSub = db().channel(`player_events_${initRoom.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_events", filter: `room_id=eq.${initRoom.id}` }, (p) => {
+        const evt = p.new;
+        if (evt.type === "bingo_claim" || evt.type === "bingo_confirmed") {
+          const name = evt.payload?.player_name || "Jogador";
+          setWinnerName(name);
+        }
+      }).subscribe();
+
+    subsRef.current = [roomSub, pSub, eSub];
     return () => {
       clearInterval(pollInterval);
       subsRef.current.forEach(s => { try { db().removeChannel(s); } catch { } });
@@ -1232,9 +1265,8 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
         <div style={{ background: "var(--s1)", borderBottom: "1px solid rgba(255,255,255,.04)", padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Padrão:</span>
           <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
-            {{ line: "➖ Linha", full: "⬛ Cartela Cheia", diagonal: "✖️ Diagonal" }[initRoom.win_pattern] || initRoom.win_pattern}
+            {{ line: "➖ Linha", full: "⬛ Cartela Cheia", diagonal: "✖️ Diagonal" }[winPattern] || winPattern}
           </span>
-          <span style={{ fontSize: 10, color: "var(--muted)", background: "var(--s2)", borderRadius: 20, padding: "2px 8px", marginLeft: 2 }}>🔒 fixo</span>
         </div>
       )}
 
@@ -1287,8 +1319,23 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
         </div>
       )}
 
-      {/* RUNNING / PAUSED / ENDED */}
-      {phase !== "waiting" && (
+      {/* ENDED */}
+      {phase === "ended" && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+          <div style={{ fontSize: 64 }}>🏆</div>
+          <div className="rg" style={{ fontSize: 26, textAlign: "center" }}>Partida Encerrada!</div>
+          {winnerName ? (
+            <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: "14px 28px", textAlign: "center", border: "1px solid rgba(255,209,102,.15)" }}>
+              <div style={{ color: "var(--muted)", fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 4 }}>Vencedor</div>
+              <div className="rg" style={{ fontSize: 22, color: "var(--accent)" }}>🎉 {winnerName}</div>
+            </div>
+          ) : (
+            <div style={{ color: "var(--muted)", fontSize: 14, textAlign: "center" }}>Sem vencedor nesta rodada</div>
+          )}
+          <button onClick={onLeave} style={{ marginTop: 8, background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.1)", color: "var(--text)", borderRadius: 50, padding: "12px 28px", fontFamily: "'DM Sans',sans-serif", fontSize: 14, fontWeight: 700 }}>← Voltar ao Início</button>
+        </div>
+      )}
+      {(phase === "running" || phase === "paused") && (
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {/* Ticker */}
           <div style={{ background: "var(--s1)", padding: "11px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0, borderBottom: "1px solid rgba(255,255,255,.04)" }}>
