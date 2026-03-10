@@ -619,9 +619,28 @@ function HostScreen({ onLeave, showToast, initialData }) {
     if (data) setter(data);
   }
 
+  const PATTERN_LABELS = { line: "Linha", full: "Cartela Cheia", diagonal: "Diagonal" };
+  const PATTERN_EMOJIS = { line: "➖", full: "⬛", diagonal: "✖️" };
+
   async function startGame() {
+    const patLabel = PATTERN_LABELS[winPattern] || winPattern;
+    const patEmoji = PATTERN_EMOJIS[winPattern] || "";
+    const result = await Swal.fire({
+      title: '▶ Iniciar Partida?',
+      html: `<div style="font-size:15px;line-height:1.7;color:inherit">O padrão de vitória escolhido é:<br/><strong style="font-size:20px">${patEmoji} ${patLabel}</strong><br/><span style="font-size:12px;opacity:.6">Não será possível alterar após iniciar.</span></div>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#06D6A0',
+      cancelButtonColor: '#6B7280',
+      confirmButtonText: `▶ Iniciar com ${patLabel}`,
+      cancelButtonText: 'Voltar',
+      background: document.body.classList.contains('dark-mode') ? '#1E1E1E' : '#FFFFFF',
+      color: document.body.classList.contains('dark-mode') ? '#F5F5F5' : '#111827',
+    });
+    if (!result.isConfirmed) return;
+
     setLoading("Iniciando partida...");
-    const { error } = await db().from("rooms").update({ phase: "running" }).eq("id", roomId);
+    const { error } = await db().from("rooms").update({ phase: "running", win_pattern: winPattern }).eq("id", roomId);
     if (error) { setLoading(null); showToast("Erro: " + error.message, "error"); return; }
     await db().from("room_events").insert({ room_id: roomId, type: "game_started", player_id: playerId });
     setPhase("running");
@@ -774,11 +793,18 @@ function HostScreen({ onLeave, showToast, initialData }) {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <ThemeToggle />
-          {phase !== "waiting" && (
-            <button onClick={() => setShowQRModal(true)} style={{ width: 38, height: 38, border: "none", background: "var(--accent)", borderRadius: 11, color: "#0C0B16", fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>⊞</button>
-          )}
         </div>
       </div>
+      {/* Pattern badge — shown after game starts */}
+      {(phase === "running" || phase === "paused" || phase === "ended") && (
+        <div style={{ background: "var(--s1)", borderBottom: "1px solid rgba(255,255,255,.04)", padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Padrão:</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
+            {{ line: "➖ Linha", full: "⬛ Cartela Cheia", diagonal: "✖️ Diagonal" }[winPattern] || winPattern}
+          </span>
+          <span style={{ fontSize: 10, color: "var(--muted)", background: "var(--s2)", borderRadius: 20, padding: "2px 8px", marginLeft: 2 }}>🔒 fixo</span>
+        </div>
+      )}
 
       {/* Body */}
       <div className="noscroll" style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -793,6 +819,30 @@ function HostScreen({ onLeave, showToast, initialData }) {
               <div className="rg" style={{ fontSize: 48, color: "var(--accent)", letterSpacing: 8, lineHeight: 1 }}>{roomCode}</div>
               <QRCodeInline code={roomCode} />
             </div>
+
+            {/* Win pattern selector */}
+            <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: "16px 20px", width: "100%", maxWidth: 340, border: "1px solid rgba(255,255,255,.06)" }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--muted)", fontWeight: 700, marginBottom: 12, textAlign: "center" }}>🏆 Padrão de Vitória</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+                {[
+                  { val: "line", label: "Linha", emoji: "➖" },
+                  { val: "full", label: "Cartela\nCheia", emoji: "⬛" },
+                  { val: "diagonal", label: "Diagonal", emoji: "✖️" },
+                ].map(({ val, label, emoji }) => (
+                  <button key={val} onClick={() => setWinPattern(val)} style={{
+                    border: `2px solid ${winPattern === val ? "var(--accent)" : "var(--s2)"}`,
+                    borderRadius: 12, background: winPattern === val ? "rgba(255,209,102,.12)" : "transparent",
+                    color: winPattern === val ? "var(--accent)" : "var(--muted)",
+                    padding: "10px 6px", display: "flex", flexDirection: "column", alignItems: "center",
+                    gap: 4, transition: "all .2s", cursor: "pointer",
+                  }}>
+                    <span style={{ fontSize: 22 }}>{emoji}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, whiteSpace: "pre-line", textAlign: "center", lineHeight: 1.3 }}>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div style={{ color: "var(--muted)", fontSize: 13 }}>Jogadores na sala:</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", maxWidth: 340 }}>
               {nonHost.length === 0
@@ -871,13 +921,6 @@ function HostScreen({ onLeave, showToast, initialData }) {
                   <option value="tradicional">Tradicional</option>
                   <option value="rapido">Rápido</option>
                   <option value="festivo">Festivo 🎉</option>
-                </select>
-              },
-              {
-                label: "Padrão", el: <select value={winPattern} onChange={e => setWinPattern(e.target.value)} style={{ background: "var(--s2)", border: "none", color: "var(--text)", borderRadius: 8, padding: "7px 10px", fontFamily: "'DM Sans',sans-serif", fontSize: 13 }}>
-                  <option value="line">Linha</option>
-                  <option value="full">Cartela Cheia</option>
-                  <option value="diagonal">Diagonal</option>
                 </select>
               },
             ].map(({ label, el }) => (
@@ -1184,6 +1227,16 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
           <div style={{ background: "var(--s2)", padding: "6px 12px", borderRadius: 20, fontSize: 12, color: badgeColor, fontWeight: 700 }}>{badgeText}</div>
         </div>
       </div>
+      {/* Pattern badge */}
+      {(phase === "running" || phase === "paused" || phase === "ended") && (
+        <div style={{ background: "var(--s1)", borderBottom: "1px solid rgba(255,255,255,.04)", padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700 }}>Padrão:</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
+            {{ line: "➖ Linha", full: "⬛ Cartela Cheia", diagonal: "✖️ Diagonal" }[initRoom.win_pattern] || initRoom.win_pattern}
+          </span>
+          <span style={{ fontSize: 10, color: "var(--muted)", background: "var(--s2)", borderRadius: 20, padding: "2px 8px", marginLeft: 2 }}>🔒 fixo</span>
+        </div>
+      )}
 
       {/* WAITING */}
       {phase === "waiting" && (
