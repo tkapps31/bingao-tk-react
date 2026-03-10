@@ -1172,9 +1172,13 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
 
     // Fallback Polling (garante o destravamento caso o websocket falhe no exato instante inicial)
     const pollInterval = setInterval(async () => {
-      const { data } = await db().from("rooms").select("phase, called_numbers, current_number, current_letter").eq("id", initRoom.id).maybeSingle();
+      const { data } = await db().from("rooms").select("phase, called_numbers, current_number, current_letter, win_pattern").eq("id", initRoom.id).maybeSingle();
       if (data) {
         if (data.phase) setPhase(data.phase);
+        if (data.win_pattern && data.win_pattern !== winPatternRef.current) {
+          setWinPattern(data.win_pattern);
+          winPatternRef.current = data.win_pattern;
+        }
         if (data.called_numbers) {
           if (data.called_numbers.length === 0) {
             setTickerHistory([]);
