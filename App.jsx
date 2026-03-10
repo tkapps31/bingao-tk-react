@@ -92,24 +92,10 @@ function genCode() {
   const chars = "ABCDEFHJKLMNPQRSTUVWXYZ23456789";
   return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
-function drawQR(canvas, code) {
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  const S = 220, grid = 21, cell = S / grid;
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, S, S);
-  const drawFinder = (x, y) => {
-    ctx.fillStyle = "#0C0B16"; ctx.fillRect(x * cell, y * cell, 7 * cell, 7 * cell);
-    ctx.fillStyle = "#fff"; ctx.fillRect((x + 1) * cell, (y + 1) * cell, 5 * cell, 5 * cell);
-    ctx.fillStyle = "#0C0B16"; ctx.fillRect((x + 2) * cell, (y + 2) * cell, 3 * cell, 3 * cell);
-  };
-  drawFinder(0, 0); drawFinder(14, 0); drawFinder(0, 14);
-  let seed = 0;
-  for (const ch of code) seed = (seed * 31 + ch.charCodeAt(0)) & 0xffff;
-  const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-  for (let r = 0; r < grid; r++) for (let c = 0; c < grid; c++) {
-    if ((r < 8 && c < 8) || (r < 8 && c > 12) || (r > 12 && c < 8)) continue;
-    if (rand() > 0.5) { ctx.fillStyle = "#0C0B16"; ctx.fillRect(c * cell, r * cell, cell, cell); }
-  }
+
+function getQRUrl(code) {
+  const appUrl = `${location.origin}${location.pathname}?code=${code}`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(appUrl)}&margin=10&color=0C0B16`;
 }
 
 /* ─────────────────────────────────────────────
@@ -317,20 +303,30 @@ function SplashScreen({ onHost, onPlayer }) {
    QR MODAL & INLINE
 ───────────────────────────────────────────── */
 function QRCodeInline({ code }) {
-  const canvasRef = useRef();
-  useEffect(() => { if (canvasRef.current && code) drawQR(canvasRef.current, code); }, [code]);
-  return <canvas ref={canvasRef} width={220} height={220} style={{ width: 150, height: 150, borderRadius: 12, boxShadow: "0 4px 16px rgba(0,0,0,.3)", marginTop: 14 }} />;
+  return (
+    <img
+      src={getQRUrl(code)}
+      alt={`QR Code para entrar na sala ${code}`}
+      width={150}
+      height={150}
+      style={{ borderRadius: 12, boxShadow: "0 4px 16px rgba(0,0,0,.3)", marginTop: 14, background: "#fff" }}
+    />
+  );
 }
 
 function QRModal({ code, onClose }) {
-  const canvasRef = useRef();
-  useEffect(() => { if (canvasRef.current) drawQR(canvasRef.current, code); }, [code]);
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.82)", zIndex: 300, display: "flex", alignItems: "flex-end", justifyContent: "center", backdropFilter: "blur(6px)" }}>
       <div style={{ background: "var(--s1)", borderRadius: "24px 24px 0 0", padding: "28px 24px max(32px,env(safe-area-inset-bottom))", width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", alignItems: "center", gap: 18, animation: "slidein .3s ease" }}>
         <div style={{ width: 36, height: 4, background: "var(--s3)", borderRadius: 2 }} />
         <div className="rg" style={{ fontSize: 20 }}>📱 Entrar na Sala</div>
-        <canvas ref={canvasRef} width={220} height={220} style={{ borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,.4)" }} />
+        <img
+          src={getQRUrl(code)}
+          alt={`QR Code sala ${code}`}
+          width={220}
+          height={220}
+          style={{ borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,.4)", background: "#fff" }}
+        />
         <div className="rg" style={{ fontSize: 44, letterSpacing: 10, color: "var(--accent)" }}>{code}</div>
         <div style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", lineHeight: 1.7 }}>Escaneie o QR Code ou<br />digite o código acima</div>
         <button onClick={onClose} style={{ background: "var(--s2)", border: "none", color: "var(--text)", padding: "14px 32px", borderRadius: 50, fontFamily: "'DM Sans',sans-serif", fontSize: 16, fontWeight: 700, width: "100%" }}>Fechar</button>
@@ -958,8 +954,8 @@ function HostScreen({ onLeave, showToast, initialData }) {
 /* ─────────────────────────────────────────────
    JOIN SCREEN
 ───────────────────────────────────────────── */
-function JoinScreen({ onBack, onJoined }) {
-  const [code, setCode] = useState("");
+function JoinScreen({ onBack, onJoined, initialCode = "" }) {
+  const [code, setCode] = useState(initialCode);
   const [name, setName] = useState("");
   const [selectedCards, setSelectedCards] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -1308,12 +1304,30 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
 ───────────────────────────────────────────── */
 export default function App() {
   useCSS();
-  const [screen, setScreen] = useState("splash");
+
+  // Check for ?code= in URL (from QR code scan)
+  const urlCode = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return (params.get("code") || "").toUpperCase();
+  }, []);
+
+  const [screen, setScreen] = useState(urlCode ? "join" : "splash");
   const [joinData, setJoinData] = useState(null);
   const [hostData, setHostData] = useState(null);
   const [toast, showToast] = useToast();
 
   useEffect(() => {
+    // Clean the URL param without reloading, after we've read it
+    if (urlCode) {
+      const url = new URL(location.href);
+      url.searchParams.delete("code");
+      history.replaceState(null, "", url.toString());
+    }
+  }, [urlCode]);
+
+  useEffect(() => {
+    // Only restore session if no QR code was scanned
+    if (urlCode) return;
     const session = localStorage.getItem("bingao_session");
     if (session) {
       try {
@@ -1330,6 +1344,7 @@ export default function App() {
       }
     }
   }, []);
+
   return (
     <>
       <Toast {...toast} />
@@ -1355,6 +1370,7 @@ export default function App() {
 
       {screen === "join" && (
         <JoinScreen
+          initialCode={urlCode}
           onBack={() => setScreen("splash")}
           onJoined={(data) => {
             localStorage.setItem("bingao_session", JSON.stringify({ role: "player", joinData: data }));
