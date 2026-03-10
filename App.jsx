@@ -693,8 +693,11 @@ function HostScreen({ onLeave, showToast, initialData }) {
             setAutoMode(false);
             phaseRef.current = "ended";
             setPhase("ended");
+            setEndedSummary(`🏆 ${p.name} venceu com ${calledRef.current.length} números chamados!`);
+            speakRaw(`Parabéns ${p.name}! Você ganhou o Bingão do TK!`);
 
             await db().from("players").update({ cards, has_bingo: true }).eq("id", p.id);
+            await db().from("rooms").update({ phase: "ended", winner_player_id: p.id }).eq("id", rid);
             await db().from("room_events").insert({
               room_id: rid, type: "bingo_claim", player_id: p.id,
               payload: { player_name: p.name, card_idx: ci, pattern },
@@ -859,6 +862,22 @@ function HostScreen({ onLeave, showToast, initialData }) {
 
         {/* RUNNING / PAUSED */}
         {(phase === "running" || phase === "paused") && (<>
+          {/* History */}
+          <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 14 }}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--muted)", fontWeight: 700, marginBottom: 8 }}>Histórico</div>
+            <div className="noscroll" style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+              {[...called].reverse().map(n => {
+                const letter = getLetterForNum(n);
+                return (
+                  <div key={n} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--s2)", borderRadius: 20, padding: "4px 10px 4px 4px" }}>
+                    <MiniBall num={n} letter={letter} size={28} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{letter} {n}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Big ball */}
           <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 22, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
             <BigBall num={currentNum} letter={currentLetter} animKey={ballAnimKey} />
@@ -928,22 +947,6 @@ function HostScreen({ onLeave, showToast, initialData }) {
                 {el}
               </div>
             ))}
-          </div>
-
-          {/* History */}
-          <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 14 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--muted)", fontWeight: 700, marginBottom: 8 }}>Histórico</div>
-            <div className="noscroll" style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 160, overflowY: "auto" }}>
-              {[...called].reverse().map(n => {
-                const letter = getLetterForNum(n);
-                return (
-                  <div key={n} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--s2)", borderRadius: 20, padding: "4px 10px 4px 4px" }}>
-                    <MiniBall num={n} letter={letter} size={28} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{letter}-{n}</span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
         </>)}
 
