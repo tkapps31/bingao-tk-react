@@ -930,38 +930,19 @@ function HostScreen({ onLeave, showToast, initialData }) {
             ))}
           </div>
 
-          {/* Bingo board */}
-          <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 14 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--muted)", fontWeight: 700, marginBottom: 8 }}>Tabuleiro</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 4, marginBottom: 4 }}>
-              {COLS.map(c => <div key={c} className="rg" style={{ textAlign: "center", fontSize: 14, padding: "5px 0", borderRadius: 7, background: COL_HEX[c], color: c === "I" ? "#1a1a1a" : "#fff" }}>{c}</div>)}
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 3 }}>
-              {COLS.flatMap(c => {
-                const [lo, hi] = COL_RANGES[c];
-                return Array.from({ length: hi - lo + 1 }, (_, i) => {
-                  const n = lo + i;
-                  const isCalled = called.includes(n);
-                  return (
-                    <div key={`${c}${n} `} style={{
-                      aspectRatio: 1, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 9, fontWeight: 700, minHeight: 18,
-                      background: isCalled ? COL_HEX[c] : "var(--s2)",
-                      color: isCalled ? (c === "I" ? "#1a1a1a" : "#fff") : "var(--muted)",
-                      transition: "background .35s, transform .35s",
-                      transform: isCalled ? "scale(1.08)" : "scale(1)",
-                    }}>{n}</div>
-                  );
-                });
-              })}
-            </div>
-          </div>
-
           {/* History */}
           <div style={{ background: "var(--s1)", borderRadius: "var(--r)", padding: 14 }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: 2, color: "var(--muted)", fontWeight: 700, marginBottom: 8 }}>Histórico</div>
-            <div className="noscroll" style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 110, overflowY: "auto" }}>
-              {[...called].reverse().map(n => <MiniBall key={n} num={n} letter={getLetterForNum(n)} />)}
+            <div className="noscroll" style={{ display: "flex", flexWrap: "wrap", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+              {[...called].reverse().map(n => {
+                const letter = getLetterForNum(n);
+                return (
+                  <div key={n} style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--s2)", borderRadius: 20, padding: "4px 10px 4px 4px" }}>
+                    <MiniBall num={n} letter={letter} size={28} />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{letter}-{n}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </>)}
@@ -1219,7 +1200,7 @@ function PlayerScreen({ room: initRoom, player: initPlayer, cards: initCards, on
     // Subscribe players for count and my own cards reset
     const pSub = db().channel(`player_players_${initRoom.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "players", filter: `room_id=eq.${initRoom.id}` }, async (payload) => {
-        const { data } = await db().from("players").select("id").eq("room_id", initRoom.id);
+        const { data } = await db().from("players").select("id").eq("room_id", initRoom.id).eq("is_host", false);
         if (data) setTotalPlayers(data.length);
 
         if (payload.new && payload.new.id === initPlayer.id) {
